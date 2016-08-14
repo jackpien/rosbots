@@ -33,9 +33,9 @@ WS_DIR = "~/ros_catkin_ws"
 INSTALL_DIR = WS_DIR + "/build/opt/ros/kinetic"
 
 def setup_ros_robot_packages():
-    setup_ros_other_packages("geometry_msgs")
+    _setup_ros_other_packages("geometry_msgs")
 
-def setup_ros_other_packages(rospkg):
+def _setup_ros_other_packages(rospkg):
     run("echo 'Starting...'")
 
     _pp("After you successfully install ros_com stuff, install some others")
@@ -127,17 +127,19 @@ def setup_ros_for_pi():
 
         install_dir = INSTALL_DIR 
         
-        _pp("All dependencies have been resolved, going to start compiling and install into: " + install_dir)
+        _fp("All dependencies have been resolved, going to start compiling and install into: " + install_dir)
         
         if not fabfiles.exists(install_dir):
             run("mkdir -p " + install_dir)
 
-        run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + install_dir + " -j2")
+        rval = _get_input("Continue with compile or skip? SKIP to skip compile, ENTER to continue...")
+        if rval != "SKIP":
+            run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + install_dir + " -j2")
 
 
-        _rval = _get_input("Did the compile succeed?\n(NO to quit and fix, ENTER to continue)")
-        if rval == "NO":
-            return
+            _rval = _get_input("Did the compile succeed?\n(NO to quit and fix, ENTER to continue)")
+            if rval == "NO":
+                return
 
         
         src_cmd = "source " + install_dir + "/setup.bash"
@@ -145,5 +147,13 @@ def setup_ros_for_pi():
             _fp("Sourcing of ROS env setup is already in your bashrc")
         else:
             _pp("Going to add ROS source setup into your bashrc")
-            run("echo '" + src_cmd + "' >> ~/.bashrc")
+            run("echo '" + src_cmd + "\n' >> ~/.bashrc")
+            run("echo 'export ROSBOTS_MASTER=1\n' >> ~/.bashrc") 
 
+            # Add other setups for rosbots
+            put("./sourceme_rosbots.bash", "~/")
+            put("./run_rosbots.bash", "~/")
+            run("echo 'source ~/sourceme_rosbots.bash' >> ~/.bashrc")
+
+    _fp("Done... you need to SSH into your system at least once to start roscore.")
+    
