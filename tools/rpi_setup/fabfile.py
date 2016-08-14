@@ -25,12 +25,20 @@ def _pp(msg):
     _fp(msg)
     programPause = _get_input("Press the <ENTER> key to continue...")
 
+
+WS_DIR = "/ros_catkin_ws"
+INSTALL_DIR = WS_DIR + "/build/opt/ros/kinetic"
+
 def helloworld():
     run("ls -la")
 
+    with cd("~"):
+        home_path = run("pwd")
+        ws_dir = home_path + WS_DIR
 
-WS_DIR = "~/ros_catkin_ws"
-INSTALL_DIR = WS_DIR + "/build/opt/ros/kinetic"
+        put("./rosbots_service_template.bash", "~/rosbots_template")
+        run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+
 
 def setup_ros_robot_packages():
     _setup_ros_other_packages("geometry_msgs")
@@ -40,11 +48,13 @@ def _setup_ros_other_packages(rospkg):
 
     _pp("After you successfully install ros_com stuff, install some others")
 
-    if not fabfiles.exists(WS_DIR):
+    home_path = run("pwd")
+    ws_dir = home_path + WS_DIR
+    if not fabfiles.exists(ws_dir):
         _fp("ROS Workspace not found - run the main set up first")
         return
 
-    with cd(WS_DIR):
+    with cd(ws_dir):
         ts = str(time.time()).split(".")[0]
         fn = "kinetic-custom_" + str(ts) + "_ros.rosinstall"
         run("rosinstall_generator " + rospkg + " --rosdistro kinetic --deps --wet-only --tar > " + fn)
@@ -66,7 +76,7 @@ def _setup_ros_other_packages(rospkg):
 
         _pp("Did the dependencies update ok?  If so, let's compile the new packages.")
 
-        run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + INSTALL_DIR + " -j2")
+        run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + home_path + INSTALL_DIR + " -j2")
 
 
         
@@ -98,7 +108,8 @@ def setup_ros_for_pi():
         sudo("rosdep init")
         run("rosdep update")
 
-    ws_dir = WS_DIR
+    home_path = run("pwd")
+    ws_dir = home_path + WS_DIR
 
     # Create catkin workspace
     if not fabfiles.exists(ws_dir):
@@ -125,7 +136,7 @@ def setup_ros_for_pi():
         # Resolve dependencies
         run("rosdep install -y --from-paths src --ignore-src --rosdistro kinetic -r --os=debian:jessie")
 
-        install_dir = INSTALL_DIR 
+        install_dir = home_path + INSTALL_DIR 
         
         _fp("All dependencies have been resolved, going to start compiling and install into: " + install_dir)
         
@@ -152,8 +163,21 @@ def setup_ros_for_pi():
 
             # Add other setups for rosbots
             put("./sourceme_rosbots.bash", "~/")
-            put("./run_rosbots.bash", "~/")
             run("echo 'source ~/sourceme_rosbots.bash' >> ~/.bashrc")
 
-    _fp("Done... you need to SSH into your system at least once to start roscore.")
+    _pp("All ROS components should be compiled and installed. Going to set up init.d to run ROSBots as a service.")
+
+
+    put("./rosbots_service_template.bash", "~/rosbots_template")
+    run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+
+    sudo("mv rosbots /etc/init.d/")
+    sudo("chown root:root /etc/init.d/rosbots")
+    sudo("chmod 755 /etc/init.d/rosbots")
+    sudo("update-rc.d rosbots defaults")
+    sudo("systemctl daemon-reload")
+    sudo("systemctl stop rosbots")
+    sudo("systemctl start rosbots")
+    
+    _fp("Done...")
     
