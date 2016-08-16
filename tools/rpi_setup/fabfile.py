@@ -39,9 +39,60 @@ def helloworld():
         put("./rosbots_service_template.bash", "~/rosbots_template")
         run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
 
+def setup_wifi_on_pi():
+    run("echo 'Starting...'")
+
+    ssid_name = _get_input("What is the SSID?")
+    _fp(ssid_name)
+    wpa_pwd = _get_input("What is the WPA pwd?")
+    _fp(wpa_pwd)
+    name = _get_input("What do you want to name this network?")
+    _fp(name)
+
+    supplicant_fn = "/etc/wpa_supplicant/wpa_supplicant.conf"
+    if sudo("grep 'ssid=\"" + ssid_name + "\"' " + supplicant_fn, \
+           warn_only=True).succeeded:
+        _fp("This SSID is already set up")
+    else:
+        _fp("Adding the network you specified into " + supplicant_fn)
+        network_config = "\n\n" + \
+                         "network={\n" + \
+                         "    ssid=\"" + ssid_name + "\"\n" + \
+                         "    psk=\"" + wpa_pwd + "\"\n" + \
+                         "    id_str=\"" + name + "\"\n" + \
+                         "}\n"
+        sudo("cp " + supplicant_fn + " " + supplicant_fn + ".old")
+        sudo("echo '" + network_config + "' >> " + supplicant_fn)
+        
 
 def setup_ros_robot_packages():
     _setup_ros_other_packages("geometry_msgs")
+
+def setup_ros_rosbots_packages():
+    run("echo 'Starting...'")
+
+    home_path = run("pwd")
+    git_path = home_path + "/gitspace"
+    rosbots_path = git_path + "/rosbots"
+    ws_dir = home_path + WS_DIR
+    install_dir = home_path + INSTALL_DIR
+    if not fabfiles.exists(git_path):
+        _fp("Did not find rosbots repo, cloning...")
+        run("mkdir " + git_path)
+        with cd(git_path):
+            run("git clone https://github.com/jackpien/rosbots.git")
+            
+        _fp("Creating symbolic link to main ros workspace")
+        with cd(ws_dir + "/src"):
+            run("ln -s " + rosbots_path + "/ros_ws/src/rosbots_driver")
+    else:
+        _fp("Found rosbots repo, just fetching top and rebasing")
+        with cd(rosbots_path):
+            run("git fetch origin")
+            run("git rebase origin/master")
+
+    with cd(ws_dir):
+        run("./src/catkin/bin/catkin_make_isolated --pkg rosbots_driver --install -DCMAKE_BUILD_TYPE=Release --install-space " + install_dir + " -j2")
 
 def _setup_ros_other_packages(rospkg):
     run("echo 'Starting...'")
