@@ -25,9 +25,9 @@ then
         echo '...Eventually need to create a systemd file for this so roscore runs on bootup.'
         #nohup roscore > ~/roscore.out 2>&1 &
     else
-        echo 'ROSCORE already running...'
+        echo '\n\nROSCORE already running...'
     fi
-    echo "For all slaves, \"export ROS_MASTER_URI=http://${ROS_IP}:11311\""
+    echo "For all slaves, \"export ROS_MASTER_URI=http://${ROS_IP}:11311\"\n"
 else    
     echo 'As ROS slave node, you will also need to "export ROS_MASTER_URI=http://<master_ip>:11311"'
 fi
