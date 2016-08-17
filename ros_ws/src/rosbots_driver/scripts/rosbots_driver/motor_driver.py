@@ -35,5 +35,7 @@ def motor_driver():
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
+    GPIO.cleanup()
+
 if __name__ == '__main__':
     motor_driver()
