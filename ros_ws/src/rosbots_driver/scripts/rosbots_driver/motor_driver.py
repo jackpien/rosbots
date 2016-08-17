@@ -7,6 +7,8 @@ ledPin = 23 # Broadcom pin 23 (P1 pin 16)
 is_on = False
 
 def callback(data):
+    global is_on
+    global ledPin
     rospy.loginfo(rospy.get_caller_id() + "I heard %f", data.linear.x)
     if is_on:
         is_on = False
@@ -16,6 +18,7 @@ def callback(data):
         GPIO.output(ledPin, GPIO.HIGH)
     
 def motor_driver():
+    global ledPin
 
     # In ROS, nodes are uniquely named. If two nodes with the same
     # node are launched, the previous one is kicked off. The
