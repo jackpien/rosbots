@@ -1,10 +1,15 @@
 #!/usr/bin/env python
 import RPi.GPIO as GPIO
+from RPIO import PWM
+
 import rospy
 from geometry_msgs.msg import Twist
 
 ledPin = 23 # Broadcom pin 23 (P1 pin 16)
 is_on = False
+
+def shutdown_cb():
+    GPIO.cleanup()
 
 def callback(data):
     global is_on
@@ -28,6 +33,9 @@ def motor_driver():
     rospy.init_node('motor_driver', anonymous=True)
 
     rospy.Subscriber("twist", Twist, callback)
+    
+
+    rospy.on_shutdown(shutdown_cb)
 
     GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
     GPIO.setup(ledPin, GPIO.OUT) # LED pin set as output 
@@ -35,7 +43,6 @@ def motor_driver():
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
-    GPIO.cleanup()
 
 if __name__ == '__main__':
     motor_driver()
