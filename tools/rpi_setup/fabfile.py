@@ -84,6 +84,8 @@ def setup_ros_rosbots_packages():
             
         _fp("Creating symbolic link to main ros workspace")
         with cd(ws_dir + "/src"):
+            if fabfiles.exists("rosbots_driver"):
+                run("rm rosbots_driver")
             run("ln -s " + rosbots_path + "/ros_ws/src/rosbots_driver")
     else:
         _fp("Found rosbots repo, just fetching top and rebasing")
@@ -93,6 +95,23 @@ def setup_ros_rosbots_packages():
 
     with cd(ws_dir):
         run("./src/catkin/bin/catkin_make_isolated --pkg rosbots_driver --install -DCMAKE_BUILD_TYPE=Release --install-space " + install_dir + " -j2")
+
+    # Installing RPIO DMA PWM library
+    with cd(git_path):
+        if not fabfiles.exists("RPIO"):
+            _pp("Did not find RPIO library so downloading and setting up")
+            run("git clone https://github.com/metachris/RPIO.git --branch v2 --single-branch")
+            with cd("RPIO"):
+                run("python setup.py build")
+                _pp("Did build complete for RPIO?")
+                run("export PYTHONPATH=" + home_path + "/lib/python; python setup.py -v install --home " + home_path)
+
+                _pp("Did RPIO install correctly into " + home_path + "?")
+
+    # Rerun the init script
+    sudo("systemctl stop rosbots")
+    sudo("systemctl start rosbots")
+    
 
 def _setup_ros_other_packages(rospkg):
     run("echo 'Starting...'")
@@ -210,7 +229,10 @@ def setup_ros_for_pi():
         else:
             _pp("Going to add ROS source setup into your bashrc")
             run("echo '" + src_cmd + "\n' >> ~/.bashrc")
-            run("echo 'export ROSBOTS_MASTER=1\n' >> ~/.bashrc") 
+            run("echo 'export ROSBOTS_MASTER=1\n' >> ~/.bashrc")
+
+            # Add some custom python library paths
+            run("echo 'export PYTHONPATH=/home/pi/lib/python:${PYTHON_PATH}\n' >> ~/.bashrc") 
 
             # Add other setups for rosbots
             put("./sourceme_rosbots.bash", "~/")
@@ -218,9 +240,16 @@ def setup_ros_for_pi():
 
     _pp("All ROS components should be compiled and installed. Going to set up init.d to run ROSBots as a service.")
 
+    # Copy over the rosbots init script - which is kicked off by the init.d
+    # service framework
+    put("./rosbots_startup.sh", "~/rosbots_startup.sh")
+    run("chmod +x ~/rosbots_startup.sh")
 
+    # Set up and install the init.d service which will fork and call
+    # the rosbots startup script above
     put("./rosbots_service_template.bash", "~/rosbots_template")
     run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+    run("rm rosbots_template")
 
     sudo("mv rosbots /etc/init.d/")
     sudo("chown root:root /etc/init.d/rosbots")

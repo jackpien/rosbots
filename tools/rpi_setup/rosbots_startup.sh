@@ -2,7 +2,9 @@
 #export ROSBOTS_WS_PATH=/home/pi/ros_catkin_ws
 . ${ROSBOTS_WS_PATH}/build/opt/ros/kinetic/setup.sh
 
-echo "Starting Rosbots init script" > ${ROSBOTS_HOME}/roscore.log
+export PYTHONPATH="${ROSBOTS_HOME}/lib/python:${PYTHONPATH}"
+
+echo "Starting rosbots_startup script" > ${ROSBOTS_HOME}/roscore.log
 
 # Try to get wifi address first
 my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
@@ -62,3 +64,5 @@ sleep 3
 mv /home/pi/rosbots_driver_motor_driver.log /home/pi/rosbots_driver_motor_driver.log.old
 nohup rosrun rosbots_driver motor_driver.py >> /home/pi/rosbots_driver_motor_driver.log 2>> /home/pi/rosbots_driver_motor_driver.log &
 # nohup rostopic pub -r 0.5 /twist geometry_msgs/Twist "[1,0,0]" "[2,0,0]" > /home/pi/rostopic.log 2>&1 &
+
+echo "Done with rosbots_startup script..." >> ${ROSBOTS_HOME}/roscore.log
