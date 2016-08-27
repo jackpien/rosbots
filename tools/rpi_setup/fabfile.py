@@ -232,7 +232,7 @@ def setup_ros_for_pi():
             run("echo 'export ROSBOTS_MASTER=1\n' >> ~/.bashrc")
 
             # Add some custom python library paths
-            run("echo 'export PYTHONPATH=/home/pi/lib/python:${PYTHON_PATH}\n' >> ~/.bashrc") 
+            run("echo 'export PYTHONPATH=/home/pi/lib/python:${PYTHONPATH}\n' >> ~/.bashrc") 
 
             # Add other setups for rosbots
             put("./sourceme_rosbots.bash", "~/")
