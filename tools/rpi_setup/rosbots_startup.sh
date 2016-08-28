@@ -7,24 +7,22 @@ export PYTHONPATH="${ROSBOTS_HOME}/lib/python:${PYTHONPATH}"
 echo "Starting rosbots_startup script" > ${ROSBOTS_HOME}/roscore.log
 
 # Try to get wifi address first
-my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
-
-if  [ "${my_ip}" == "" ]; then
-    my_ip="$(ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
-fi
 wait_cnt=1
-until my_ip
+until my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
 do
     if [ ${wait_cnt} == 10 ]; then
-	echo "Waiting for rosmaster timed out" >> ${ROSBOTS_HOME}/roscore.log
+	echo "Waiting for IP address timed out" >> ${ROSBOTS_HOME}/roscore.log
 	break
     fi
     echo "Waiting ${wait_cnt} to get IP address" >> ${ROSBOTS_HOME}/roscore.log
     #aaa="$(ifconfig)"
     #echo "ifconfig - ${aaa}" >> ${ROSBOTS_HOME}/roscore.log
     sleep 3
+
+    # Wireless IP?
     my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
 
+    # No wireless IP, what about ethernet?
     if  [ "${my_ip}" == "" ]; then
 	my_ip="$(ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
     fi

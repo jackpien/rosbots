@@ -8,7 +8,7 @@ import fabric.contrib.files as fabfiles
 from fabric.utils import fastprint
 #env.hosts = ["localhost"]
 env.user = 'pi'    
-env.shell = '/bin/bash -l -c'
+env.shell = '/bin/bash -l -c' 
 
     
 def _get_input(msg):
@@ -38,6 +38,52 @@ def helloworld():
 
         put("./rosbots_service_template.bash", "~/rosbots_template")
         run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+
+def push_test_rosbots_motor_driver_script():
+    run("echo 'Starting...'")
+
+    home_path = run("pwd")
+    rosbots_startup_fn = "rosbots_startup.sh"
+    local_md_dir = "../../ros_ws/src/rosbots_driver/scripts/rosbots_driver"
+    remote_md_dir = "/home/pi/ros_catkin_ws/build/opt/ros/kinetic/lib/rosbots_driver"
+    md_fn = "motor_driver.py"
+    rosnode_name = "/motor_driver"
+    
+
+    # Kill current motor_driver node
+    old_shell = env.shell
+    env.shell = '/bin/bash -l -c -i'
+    if run("rosnode list | grep -i " + rosnode_name, warn_only=True).succeeded:
+        _fp("Killing current " + rosnode_name + " rosnode")
+    
+        run("rosnode kill `rosnode list | grep -i " + rosnode_name + "`")
+        #_fp(actual_name)
+        #run("rosnode kill " + rosnode_name)
+
+    env.shell = old_shell
+
+    # Push new startup script
+    if False:
+        put("./rosbots_startup.sh", "~/rosbots_startup.sh")
+        run("chmod +x ~/rosbots_startup.sh")
+
+    # Push the new motor driver file
+    if fabfiles.exists(remote_md_dir + "/" + md_fn) == False:
+        _fp("No remote " + md_fn + " found!!!  Quitting")
+        return        
+    else:
+        put(local_md_dir + "/" + md_fn, remote_md_dir + "/" + md_fn)
+        run("rm " + remote_md_dir + "/" + md_fn + "c", warn_only=True)
+
+    # Start the rosbots startup script
+    sudo("export ROSBOTS_HOME=/home/pi; export ROSBOTS_WS_PATH=/home/pi/ros_catkin_ws; " + home_path + "/" + rosbots_startup_fn)
+
+    old_shell = env.shell
+    env.shell = '/bin/bash -l -c -i'
+    _fp("List of running ros nodes")
+    run("rosnode list")
+    env.shell = old_shell
+    
 
 def setup_wifi_on_pi():
     supplicant_fn = "/etc/wpa_supplicant/wpa_supplicant.conf"
