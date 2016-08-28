@@ -40,20 +40,28 @@ def helloworld():
         run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
 
 def setup_wifi_on_pi():
+    supplicant_fn = "/etc/wpa_supplicant/wpa_supplicant.conf"
     run("echo 'Starting...'")
+    
+    if run("grep 'country=GB' " + supplicant_fn, warn_only=True).succeeded:
+        pass
+    else:
+        _fp("")
+        _pp("You should probably set 'country=US' in your supplicant file " + \
+            supplicant_fn + " when you get a chance...")
 
     ssid_name = _get_input("What is the SSID?")
     _fp(ssid_name)
-    wpa_pwd = _get_input("What is the WPA pwd?")
-    _fp(wpa_pwd)
-    name = _get_input("What do you want to name this network?")
-    _fp(name)
 
-    supplicant_fn = "/etc/wpa_supplicant/wpa_supplicant.conf"
     if sudo("grep 'ssid=\"" + ssid_name + "\"' " + supplicant_fn, \
            warn_only=True).succeeded:
         _fp("This SSID is already set up")
     else:
+        wpa_pwd = _get_input("What is the WPA pwd?")
+        _fp(wpa_pwd)
+        name = _get_input("What do you want to name this network?")
+        _fp(name)
+
         _fp("Adding the network you specified into " + supplicant_fn)
         network_config = "\n\n" + \
                          "network={\n" + \
@@ -63,7 +71,6 @@ def setup_wifi_on_pi():
                          "}\n"
         sudo("cp " + supplicant_fn + " " + supplicant_fn + ".old")
         sudo("echo '" + network_config + "' >> " + supplicant_fn)
-        
 
 def setup_ros_robot_packages():
     _setup_ros_other_packages("geometry_msgs")
@@ -104,6 +111,7 @@ def setup_ros_rosbots_packages():
             with cd("RPIO"):
                 run("python setup.py build")
                 _pp("Did build complete for RPIO?")
+                run("mkdir -p " + home_path + "/lib/python")
                 run("export PYTHONPATH=" + home_path + "/lib/python; python setup.py -v install --home " + home_path)
 
                 _pp("Did RPIO install correctly into " + home_path + "?")
