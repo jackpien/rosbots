@@ -20,43 +20,82 @@ pwm_max_width = 20000
 pwm_granularity = 10
 
 def shutdown_cb():
+    global left_ia
+    global left_ib
+    global right_ia
+    global right_ib
+    global servo
+
+    rospy.loginfo(rospy.get_caller_id() + "Shutdown callback!")
+
     servo.stop_servo(left_ia)
     servo.stop_servo(right_ia)
+
+    GPIO.setup(left_ia, GPIO.OUT)
+    GPIO.setup(right_ia, GPIO.OUT)
+    GPIO.output(left_ia, GPIO.LOW)
+    GPIO.output(right_ia, GPIO.LOW)
+    GPIO.output(left_ib, GPIO.LOW)
+    GPIO.output(right_ib, GPIO.LOW)
     GPIO.cleanup()
 
 def callback(data):
+    global left_ia
+    global left_ib
+    global right_ia
+    global right_ib
     global is_on
     global servo
     global pwm_max_width
     global pwm_granularity
     
-    rospy.loginfo(rospy.get_caller_id() + "I heard %f", data.linear.x)
-    data.linear.x = max(-1, min(1, data.linear.x))
-    if data.linear.x > 0:
-        pw = (20.0 * data.linear.x) * 1000.0
-        pw = int(pw/pwm_granularity) * pwm_granularity
-        rospy.loginfo(pw)
-        servo.set_servo(left_ia, pw) 
-        servo.set_servo(right_ia, pw)
-        GPIO.output(left_ib, GPIO.LOW)
-        GPIO.output(right_ib, GPIO.LOW)
-        #GPIO.output(left_ia, GPIO.HIGH)
-        #GPIO.output(right_ia, GPIO.HIGH)
-    elif data.linear.x < 0:
-        pw = pwm_max_width - ((20.0 * (data.linear.x*-1)) * 1000.0)
-        pw = int(pw/pwm_granularity) * pwm_granularity
-        rospy.loginfo(pw)
-        servo.set_servo(left_ia, pw) 
-        servo.set_servo(right_ia, pw)
-        GPIO.output(left_ib, GPIO.HIGH)
-        GPIO.output(right_ib, GPIO.HIGH)
-    else:
+    rospy.loginfo(rospy.get_caller_id() + ": Linear.x: %f -- Angular.z: %f", data.linear.x, data.angular.z)
+    x_dir = max(-1, min(1, data.linear.x))
+    z_ang = max(-1, min(1, data.angular.z))
+
+    lw = x_dir
+    rw = x_dir
+
+    if z_ang != 0:
+        # Left wheel faster than right
+        lw -= z_ang
+        rw += z_ang
+
+    lw = max(-1, min(1, lw))
+    rw = max(-1, min(1, rw))
+
+    rospy.loginfo(rospy.get_caller_id() + ": lw: %f -- rw: %f", lw, rw)
+
+    if lw == 0:
         servo.set_servo(left_ia, 0) 
-        servo.set_servo(right_ia, 0) 
         GPIO.output(left_ib, GPIO.LOW)
+    else:
+        if lw > 0:
+            pw = pwm_max_width * lw
+            GPIO.output(left_ib, GPIO.LOW)
+        else:
+            pw = pwm_max_width - (pwm_max_width * (lw*-1))
+            GPIO.output(left_ib, GPIO.HIGH)
+            
+        pw = int(pw/pwm_granularity) * pwm_granularity
+        servo.set_servo(left_ia, pw) 
+        
+
+    if rw == 0:
+        servo.set_servo(right_ia, 0) 
         GPIO.output(right_ib, GPIO.LOW)
-        #GPIO.output(left_ia, GPIO.LOW)
-        #GPIO.output(right_ia, GPIO.LOW)
+    else:
+        if rw > 0:
+            pw = pwm_max_width * rw
+            GPIO.output(right_ib, GPIO.LOW)
+        else:
+            pw = pwm_max_width - (pwm_max_width * (rw*-1))
+            GPIO.output(right_ib, GPIO.HIGH)
+            
+        pw = int(pw/pwm_granularity) * pwm_granularity
+        servo.set_servo(right_ia, pw) 
+
+            
 
 def motor_driver():
     global left_ia
@@ -92,6 +131,19 @@ def motor_driver():
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
+
+
+    rospy.loginfo(rospy.get_caller_id() + "Shutting down!")
+    servo.stop_servo(left_ia)
+    servo.stop_servo(right_ia)
+
+    GPIO.setup(left_ia, GPIO.OUT)
+    GPIO.setup(right_ia, GPIO.OUT)
+    GPIO.output(left_ia, GPIO.LOW)
+    GPIO.output(right_ia, GPIO.LOW)
+    GPIO.output(left_ib, GPIO.LOW)
+    GPIO.output(right_ib, GPIO.LOW)
+    GPIO.cleanup()
 
 
 if __name__ == '__main__':
