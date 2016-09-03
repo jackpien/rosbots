@@ -120,6 +120,7 @@ def setup_wifi_on_pi():
 
 def setup_ros_robot_packages():
     _setup_ros_other_packages("geometry_msgs")
+    _setup_ros_other_packages("teleop_twist_keyboard")
 
 def setup_ros_rosbots_packages():
     run("echo 'Starting...'")

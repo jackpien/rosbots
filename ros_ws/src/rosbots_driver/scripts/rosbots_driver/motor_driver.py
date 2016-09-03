@@ -15,6 +15,9 @@ right_ib = 21
 
 is_on = False
 servo = None
+pwm_subcycle_time_us = 20000 # 20ms cycle for PWM
+pwm_max_width = 20000
+pwm_granularity = 10
 
 def shutdown_cb():
     servo.stop_servo(left_ia)
@@ -24,17 +27,34 @@ def shutdown_cb():
 def callback(data):
     global is_on
     global servo
+    global pwm_max_width
+    global pwm_granularity
     
     rospy.loginfo(rospy.get_caller_id() + "I heard %f", data.linear.x)
+    data.linear.x = max(-1, min(1, data.linear.x))
     if data.linear.x > 0:
-        pw = (3 + (17.0 * data.linear.x)) * 1000.0
+        pw = (20.0 * data.linear.x) * 1000.0
+        pw = int(pw/pwm_granularity) * pwm_granularity
+        rospy.loginfo(pw)
         servo.set_servo(left_ia, pw) 
         servo.set_servo(right_ia, pw)
+        GPIO.output(left_ib, GPIO.LOW)
+        GPIO.output(right_ib, GPIO.LOW)
         #GPIO.output(left_ia, GPIO.HIGH)
         #GPIO.output(right_ia, GPIO.HIGH)
+    elif data.linear.x < 0:
+        pw = pwm_max_width - ((20.0 * (data.linear.x*-1)) * 1000.0)
+        pw = int(pw/pwm_granularity) * pwm_granularity
+        rospy.loginfo(pw)
+        servo.set_servo(left_ia, pw) 
+        servo.set_servo(right_ia, pw)
+        GPIO.output(left_ib, GPIO.HIGH)
+        GPIO.output(right_ib, GPIO.HIGH)
     else:
         servo.set_servo(left_ia, 0) 
         servo.set_servo(right_ia, 0) 
+        GPIO.output(left_ib, GPIO.LOW)
+        GPIO.output(right_ib, GPIO.LOW)
         #GPIO.output(left_ia, GPIO.LOW)
         #GPIO.output(right_ia, GPIO.LOW)
 
@@ -44,6 +64,7 @@ def motor_driver():
     global right_ia
     global right_ib
     global servo
+    global pwm_subcycle_time_us
 
     # In ROS, nodes are uniquely named. If two nodes with the same
     # node are launched, the previous one is kicked off. The
@@ -62,7 +83,7 @@ def motor_driver():
     #GPIO.setup(right_ia, GPIO.OUT)
     GPIO.setup(right_ib, GPIO.OUT)
 
-    servo = PWM.Servo()
+    servo = PWM.Servo(subcycle_time_us=pwm_subcycle_time_us)
     servo.set_servo(left_ia, 0) 
     servo.set_servo(right_ia, 0) 
 
