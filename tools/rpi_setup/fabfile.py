@@ -32,12 +32,15 @@ INSTALL_DIR = WS_DIR + "/build/opt/ros/kinetic"
 def helloworld():
     run("ls -la")
 
-    with cd("~"):
-        home_path = run("pwd")
-        ws_dir = home_path + WS_DIR
+    #with cd("~"):
+    #    home_path = run("pwd")
+    #    ws_dir = home_path + WS_DIR
 
-        put("./rosbots_service_template.bash", "~/rosbots_template")
-        run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+    #    put("./rosbots_service_template.bash", "~/rosbots_template")
+    #    run("cat rosbots_template | sed 's/_TEMPLATE_HOME/" + home_path.replace("/", "\/") + "/' | sed 's/_TEMPLATE_WS_PATH/" + ws_dir.replace("/", "\/") + "/' > rosbots")
+
+def how_to_test_rosbots_python_scripts():
+    _fp("Say you wrote a rosbots python script called foo.py. (1) chmod +x foo.py. (2) scp it over to the /home/pi/ros_catkin_ws/build/opt/ros/kinetic/share/rosbots_driver. (3) from remote machine 'rosrun rosbots_driver foo.py'")
 
 def push_test_rosbots_motor_driver_script():
     run("echo 'Starting...'")
@@ -118,11 +121,63 @@ def setup_wifi_on_pi():
         sudo("cp " + supplicant_fn + " " + supplicant_fn + ".old")
         sudo("echo '" + network_config + "' >> " + supplicant_fn)
 
-def setup_ros_robot_packages():
+    _fp("To get IP address of Pi, from a linux system - 'arp -a'")
+
+def step_5_setup_ros_robot_image_common_package():
+    _pp("Usually done after you set up OpenCV and the other robot and rosbot packages.  This mainly sets up image_transport.")
+    _setup_ros_other_packages("image_common")
+
+def step_2_setup_ros_robot_packages():
+    
+    _pp("After you successfully install ros_com stuff, install some others. This installs geometry_msgs needed for Twist among other types of basic telemetry messages.")
+
     _setup_ros_other_packages("geometry_msgs")
     _setup_ros_other_packages("teleop_twist_keyboard")
 
-def setup_ros_rosbots_packages():
+def _setup_ros_packages_from_git(ros_package_name, git_url, subpackage_list):
+    run("echo 'Starting...'")
+
+    home_path = run("pwd")
+    git_path = home_path + "/gitspace"
+    ros_package_path = git_path + "/" + ros_package_name #"/rosbots"
+    ws_dir = home_path + WS_DIR
+    install_dir = home_path + INSTALL_DIR
+
+    _fp("Do we need to create gitspace folder?")
+    if not fabfiles.exists(git_path):
+        run("mkdir " + git_path)
+
+    _fp("Do we need to git clone the repo?")
+    if not fabfiles.exists(ros_package_path):
+        _fp("Did not find " + ros_package_name + " repo, cloning...")
+        with cd(git_path):
+            run("git clone " + git_url)
+            
+        _fp("Creating symbolic link to main ros workspace")
+        with cd(ws_dir + "/src"):
+            if fabfiles.exists(ros_package_name):
+                run("rm " + ros_package_name)
+            run("ln -s " + ros_package_path)
+    else:
+        #_fp("Found the repo, just fetching top and rebasing")
+        #with cd(ros_package_path):
+        #    run("git fetch origin")
+        #    run("git rebase origin/master")
+        _pp("Found the repo, not doing anything - feel free to git fetch and rebase manually")
+
+    for subpackage in subpackage_list:
+        _fp("Compiling " + subpackage + "...")
+        with cd(ws_dir):
+            run("./src/catkin/bin/catkin_make_isolated --pkg " + subpackage + " --install -DCMAKE_BUILD_TYPE=Release --install-space " + install_dir + " -j1")
+
+def step_6_setup_ros_robot_vision_packages():
+    _fp("Usually done after you set up OpenCV and the other robot and rosbot packages")
+    _pp("This sets up mainly cv_bridge so we can pass CV image messages around. Setting up from github instead of rosinstall because rosinstall will pull in OpenCV automatically and you should have already built it from source.")
+    _setup_ros_packages_from_git("vision_opencv", \
+                "https://github.com/ros-perception/vision_opencv.git", \
+                ["cv_bridge", "image_geometry", "vision_opencv"])
+
+def step_3_setup_ros_rosbots_packages():
     run("echo 'Starting...'")
 
     home_path = run("pwd")
@@ -171,8 +226,6 @@ def setup_ros_rosbots_packages():
 def _setup_ros_other_packages(rospkg):
     run("echo 'Starting...'")
 
-    _pp("After you successfully install ros_com stuff, install some others")
-
     home_path = run("pwd")
     ws_dir = home_path + WS_DIR
     if not fabfiles.exists(ws_dir):
@@ -186,7 +239,7 @@ def _setup_ros_other_packages(rospkg):
 
         run("cat " + fn)
 
-        _pp("Did rosinstall generator create the install file correctly? If so, we're going to merge and update the workspace.")
+        _pp("Did rosinstall generator create the install file correctly? If so, we're going to merge and update the workspace. (If there are duplicate packages, hit DELETE and REPLACE!)")
         
         run("wstool merge -t src " + fn)
 
@@ -201,12 +254,66 @@ def _setup_ros_other_packages(rospkg):
 
         _pp("Did the dependencies update ok?  If so, let's compile the new packages.")
 
-        run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + home_path + INSTALL_DIR + " -j2")
+        run("./src/catkin/bin/catkin_make_isolated --install -DCMAKE_BUILD_TYPE=Release --install-space " + home_path + INSTALL_DIR + " -j1")
 
 
-        
+def step_4_setup_opencv_for_pi():
+    _pp("Roughly following http://www.pyimagesearch.com/2016/04/18/install-guide-raspberry-pi-3-raspbian-jessie-opencv-3/")
 
-def setup_ros_for_pi():
+    _fp("Update system first")
+    sudo("apt-get update")
+    sudo("apt-get -y upgrade")
+
+    _fp("Installing dependencies for OpenCV")
+    sudo("apt-get install -y build-essential cmake pkg-config libjpeg-dev libtiff5-dev libjasper-dev libpng12-dev libavcodec-dev libavformat-dev libswscale-dev libv4l-dev libxvidcore-dev libx264-dev libgtk2.0-dev libatlas-base-dev gfortran python2.7-dev python3-dev")
+
+    sudo("apt-get install -y python-pip")
+    sudo("sudo pip install numpy")
+    sudo("sudo pip install --upgrade numpy")
+
+    home_path = run("pwd")
+    git_path = home_path + "/gitspace"
+
+    _fp("Git cloning OpenCV if need be")
+    if not fabfiles.exists(git_path + "/opencv"):
+        with cd(git_path):
+            run("git clone https://github.com/opencv/opencv.git")
+        with cd(git_path + "/opencv"):
+            run("git tag -l")
+            _pp("We are compiling 3.2.0 - make sure this is the latest from the tag list printed above")
+            run("git checkout -b 3.2.0_branch tags/3.2.0")
+
+    opencv_contrib_path = git_path + "/opencv_contrib"
+    if not fabfiles.exists(opencv_contrib_path):
+        with cd(git_path):
+            run("git clone https://github.com/opencv/opencv_contrib.git")
+        with cd(opencv_contrib_path):
+            run("git tag -l")
+            _pp("We are compiling 3.2.0 - make sure this is the latest from the tag list printed above")
+            run("git checkout -b 3.2.0_branch tags/3.2.0")
+            
+    _fp("Setting up OpenCV cmake if need be")
+    if not fabfiles.exists(git_path + "/opencv/build"):
+        with cd(git_path + "/opencv"):
+            run("mkdir build")
+
+        # Set up compile
+        with cd(git_path + "/opencv/build"):
+            run("cmake -D CMAKE_BUILD_TYPE=RELEASE " + \
+                "-D CMAKE_INSTALL_PREFIX=/usr/local " + \
+                "-D INSTALL_PYTHON_EXAMPLES=ON " + \
+                "-D OPENCV_EXTRA_MODULES_PATH=" + \
+                opencv_contrib_path + "/modules " + \
+                "-D BUILD_EXAMPLES=ON ..")
+
+    # Compile
+    _fp("Compiling OpenCV...")
+    with cd(git_path + "/opencv/build"):
+        run("make -j2")
+        sudo("make install")
+        sudo("ldconfig")
+
+def step_1_setup_ros_for_pi():
     global WS_DIR
     global INSTALL_DIR
 
@@ -313,6 +420,8 @@ def setup_ros_for_pi():
     sudo("systemctl daemon-reload")
     sudo("systemctl stop rosbots")
     sudo("systemctl start rosbots")
+
+    _fp("To get IP address of Pi, from a linux system - 'arp -a'")
     
     _fp("Done...")
     
