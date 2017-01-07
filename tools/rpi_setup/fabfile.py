@@ -42,6 +42,27 @@ def helloworld():
 def how_to_test_rosbots_python_scripts():
     _fp("Say you wrote a rosbots python script called foo.py. (1) chmod +x foo.py. (2) scp it over to the /home/pi/ros_catkin_ws/build/opt/ros/kinetic/share/rosbots_driver. (3) from remote machine 'rosrun rosbots_driver foo.py'")
 
+def push_test_ros_script(path_fn=None):
+    if path_fn == None:
+        _fp("\nERROR\nPlease specify local ROS script name")
+        _fp("$ fab push_test_ros_script:<script>")
+        return
+
+    fn = path_fn.split("/")[-1]
+    remote_path = "/home/pi/ros_catkin_ws/build/opt/ros/kinetic/share"
+    ros_pkg_name = "rosbots_driver"
+    _fp("Pushing " + path_fn + " to remote location: " +
+        remote_path + "/" + ros_pkg_name)
+
+    put(path_fn, remote_path + "/" + ros_pkg_name)
+    run("chmod +x " + remote_path + "/" + ros_pkg_name + "/" + fn)
+    
+    old_shell = env.shell
+    env.shell = '/bin/bash -l -c -i'
+    run("rosrun " + ros_pkg_name + " " + fn)
+
+    
+
 def push_test_rosbots_motor_driver_script():
     run("echo 'Starting...'")
 
@@ -185,6 +206,9 @@ def step_3_setup_ros_rosbots_packages():
     rosbots_path = git_path + "/rosbots"
     ws_dir = home_path + WS_DIR
     install_dir = home_path + INSTALL_DIR
+
+    sudo("pip install picamera")
+    
     if not fabfiles.exists(git_path):
         _fp("Did not find rosbots repo, cloning...")
         run("mkdir " + git_path)
