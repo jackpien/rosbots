@@ -56,11 +56,8 @@ def push_test_ros_script(path_fn=None):
 
     put(path_fn, remote_path + "/" + ros_pkg_name)
     run("chmod +x " + remote_path + "/" + ros_pkg_name + "/" + fn)
-    
-    old_shell = env.shell
-    env.shell = '/bin/bash -l -c -i'
-    run("rosrun " + ros_pkg_name + " " + fn)
 
+    open_shell("rosrun " + ros_pkg_name + " " + fn)
     
 
 def push_test_rosbots_motor_driver_script():
