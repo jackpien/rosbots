@@ -95,6 +95,8 @@ def callback(data):
         pw = int(pw/pwm_granularity) * pwm_granularity
         servo.set_servo(right_ia, pw) 
 
+def gpio_callback(gpio_id, val):
+    rospy.loginfo("gpio %s: %s", gpio_id, val)
             
 
 def motor_driver():
@@ -121,6 +123,9 @@ def motor_driver():
     GPIO.setup(left_ib, GPIO.OUT)
     #GPIO.setup(right_ia, GPIO.OUT)
     GPIO.setup(right_ib, GPIO.OUT)
+    
+    GPIO.setup(22, GPIO.IN) # Right
+    GPIO.setup(17, GPIO.IN) # Left
 
     servo = PWM.Servo(subcycle_time_us=pwm_subcycle_time_us)
     servo.set_servo(left_ia, 0) 
@@ -128,6 +133,21 @@ def motor_driver():
 
     GPIO.output(left_ib, GPIO.LOW)
     GPIO.output(right_ib, GPIO.LOW)
+
+    
+
+    # Two GPIO interrupt callbacks
+    RPIO.add_interrupt_callback(22, gpio_callback, edge='rising',
+                                debounce_timeout_ms=10,
+                                pull_up_down=RPIO.PUD_OFF,
+                                threaded_callback=True)
+    RPIO.add_interrupt_callback(17, gpio_callback, edge='rising',
+                                debounce_timeout_ms=10,
+                                pull_up_down=RPIO.PUD_OFF,
+                                threaded_callback=True)
+
+    # Starts waiting for interrupts 
+    RPIO.wait_for_interrupts(threaded=True)
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
