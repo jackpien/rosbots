@@ -2,6 +2,8 @@
 import RPi.GPIO as GPIO
 from RPIO import PWM
 
+import RPIO
+
 import rospy
 from geometry_msgs.msg import Twist
 
