@@ -343,6 +343,11 @@ def step_1_setup_ros_for_pi():
     _fp("Set up / compile ROS on Rasbian Jessie Lite 2016-05-27")
     _pp("* If you need to do raspi-config stuff, CTRL-C out and do that before running this script")
 
+    _pp("Also we want to remove plymouth splash screen from RC service since it causes problems with rebooting the Pi")
+    sudo("update-rc.d plymouth remove")
+
+    _pp("Continue of plymouth RC removal succeeded")
+
     # Setup ROS Repositories
     if not fabfiles.exists("/etc/apt/sources.list.d/ros-latest.list"):
         sudo("sh -c 'echo \"deb http://packages.ros.org/ros/ubuntu $(lsb_release -sc) main\" > /etc/apt/sources.list.d/ros-latest.list'")
