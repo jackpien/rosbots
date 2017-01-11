@@ -13,19 +13,19 @@ export ROSBOTS_HOME=_TEMPLATE_HOME
 export ROSBOTS_WS_PATH=_TEMPLATE_WS_PATH
 
 start_ros () { 
-    nohup ${ROSBOTS_HOME}/rosbots_startup.sh > rosbots_startup.log 2>&1 &
+    nohup ${ROSBOTS_HOME}/rosbots_startup.sh > ${ROSBOTS_HOME}/rosbots_startup_service.log 2>&1 &
 }
 
 stop_ros () {
-    #source /opt/ros/setup.sh
-
     #killall nodes
-    for i in $( rosnode list ); do
-    rosnode kill $i;
-    done
+    #for i in $( rosnode list ); do
+    #rosnode kill $i;
+    #done
 
     #stop roscore
-    killall roscore
+    #killall roscore
+
+    ${ROSBOTS_HOME}/rosbots_shutdown.sh > ${ROSBOTS_HOME}/rosbots_shutdown_service.log 2>&1
 }
 
 # Carry out specific functions when asked to by the system

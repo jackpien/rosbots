@@ -343,10 +343,9 @@ def step_1_setup_ros_for_pi():
     _fp("Set up / compile ROS on Rasbian Jessie Lite 2016-05-27")
     _pp("* If you need to do raspi-config stuff, CTRL-C out and do that before running this script")
 
-    _pp("Also we want to remove plymouth splash screen from RC service since it causes problems with rebooting the Pi")
-    sudo("update-rc.d plymouth remove")
-
-    _pp("Continue of plymouth RC removal succeeded")
+    #_pp("Also we want to remove plymouth splash screen from RC service since it causes problems with rebooting the Pi")
+    #sudo("update-rc.d plymouth remove")
+    #_pp("Plymouth RC removal succeeded")
 
     # Setup ROS Repositories
     if not fabfiles.exists("/etc/apt/sources.list.d/ros-latest.list"):
@@ -432,6 +431,8 @@ def step_1_setup_ros_for_pi():
     # service framework
     put("./rosbots_startup.sh", "~/rosbots_startup.sh")
     run("chmod +x ~/rosbots_startup.sh")
+    put("./rosbots_shutdown.sh", "~/rosbots_shutdown.sh")
+    run("chmod +x ~/rosbots_shutdown.sh")
 
     # Set up and install the init.d service which will fork and call
     # the rosbots startup script above

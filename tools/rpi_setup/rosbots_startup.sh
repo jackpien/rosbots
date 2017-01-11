@@ -4,6 +4,8 @@
 
 export PYTHONPATH="${ROSBOTS_HOME}/lib/python:${PYTHONPATH}"
 
+touch ${ROSBOTS_HOME}/roscore.log
+mv ${ROSBOTS_HOME}/roscore.log ${ROSBOTS_HOME}/roscore.log_old
 echo "Starting rosbots_startup script" > ${ROSBOTS_HOME}/roscore.log
 
 # Try to get wifi address first
