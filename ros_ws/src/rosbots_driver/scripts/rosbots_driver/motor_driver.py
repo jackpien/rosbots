@@ -141,11 +141,11 @@ def motor_driver():
     # Two GPIO interrupt callbacks
     RPIO.add_interrupt_callback(22, gpio_callback, edge='rising',
                                 debounce_timeout_ms=10,
-                                pull_up_down=RPIO.PUD_OFF,
+                                pull_up_down=RPIO.PUD_DOWN,
                                 threaded_callback=True)
     RPIO.add_interrupt_callback(17, gpio_callback, edge='rising',
                                 debounce_timeout_ms=10,
-                                pull_up_down=RPIO.PUD_OFF,
+                                pull_up_down=RPIO.PUD_DOWN,
                                 threaded_callback=True)
 
     # Starts waiting for interrupts 
