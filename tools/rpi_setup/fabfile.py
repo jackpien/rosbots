@@ -10,10 +10,16 @@ from fabric.utils import fastprint
 env.user = 'pi'    
 env.shell = '/bin/bash -l -c' 
 
+is_debug = False
     
-def _get_input(msg):
-    val = raw_input(msg + "\n")
-    return val
+def _get_input(msg, force_need_query=False):
+    global is_debug
+
+    if is_debug or force_need_query:
+        val = raw_input(msg + "\n")
+        return val
+    else:
+        return ""
 
 def _fp(msg):
     fastprint(msg + "\n")
@@ -22,12 +28,23 @@ def _pp(msg):
     """ 
     Print then pause
     """
+    global is_debug
+    
     _fp(msg)
-    programPause = _get_input("Press the <ENTER> key to continue...")
+    
+    if is_debug:
+        programPause = _get_input("Press the <ENTER> key to continue...")
 
 
 WS_DIR = "/ros_catkin_ws"
 INSTALL_DIR = WS_DIR + "/build/opt/ros/kinetic"
+
+def setup_ros_opencv():
+    step_1_setup_ros_for_pi()
+    step_2_setup_ros_robot_packages()
+    step_4_setup_opencv_for_pi()
+    step_5_setup_ros_robot_image_common_package()
+    step_6_setup_ros_robot_vision_packages()
 
 def helloworld():
     run("ls -la")
@@ -117,16 +134,16 @@ def setup_wifi_on_pi():
         _pp("You should probably set 'country=US' in your supplicant file " + \
             supplicant_fn + " when you get a chance...")
 
-    ssid_name = _get_input("What is the SSID?")
+    ssid_name = _get_input("What is the SSID?", force_need_query=True)
     _fp(ssid_name)
 
     if sudo("grep 'ssid=\"" + ssid_name + "\"' " + supplicant_fn, \
            warn_only=True).succeeded:
         _fp("This SSID is already set up")
     else:
-        wpa_pwd = _get_input("What is the WPA pwd?")
+        wpa_pwd = _get_input("What is the WPA pwd?", force_need_query=True)
         _fp(wpa_pwd)
-        name = _get_input("What do you want to name this network?")
+        name = _get_input("What do you want to name this network?", force_need_query=True)
         _fp(name)
 
         _fp("Adding the network you specified into " + supplicant_fn)
@@ -204,6 +221,7 @@ def step_3_setup_ros_rosbots_packages():
     ws_dir = home_path + WS_DIR
     install_dir = home_path + INSTALL_DIR
 
+    sudo("apt-get install -y python-pip")
     sudo("pip install picamera")
     
     if not fabfiles.exists(git_path):
@@ -230,7 +248,11 @@ def step_3_setup_ros_rosbots_packages():
     with cd(git_path):
         if not fabfiles.exists("RPIO"):
             _pp("Did not find RPIO library so downloading and setting up")
-            run("git clone https://github.com/metachris/RPIO.git --branch v2 --single-branch")
+
+            # Old library does not support RPi 3
+            #run("git clone https://github.com/metachris/RPIO.git --branch v2 --single-branch")
+            #run("git clone https://github.com/limuxy/RPIO.git")
+            run("git clone https://github.com/jackpien/RPIO.git --branch v2_branch --single-branch")
             with cd("RPIO"):
                 run("python setup.py build")
                 _pp("Did build complete for RPIO?")
