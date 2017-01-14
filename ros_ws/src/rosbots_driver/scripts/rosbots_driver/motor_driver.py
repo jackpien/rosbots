@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-import RPi.GPIO as GPIO
+import RPIO as GPIO #import RPi.GPIO as GPIO
 from RPIO import PWM
 
 import RPIO
@@ -28,15 +28,13 @@ def shutdown_cb():
     global right_ib
     global servo
 
-    rospy.loginfo(rospy.get_caller_id() + "Shutdown callback!")
+    rospy.loginfo(rospy.get_caller_id() + " Shutdown callback!")
+    
+    GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
 
     servo.stop_servo(left_ia)
     servo.stop_servo(right_ia)
 
-    GPIO.setup(left_ia, GPIO.OUT)
-    GPIO.setup(right_ia, GPIO.OUT)
-    GPIO.output(left_ia, GPIO.LOW)
-    GPIO.output(right_ia, GPIO.LOW)
     GPIO.output(left_ib, GPIO.LOW)
     GPIO.output(right_ib, GPIO.LOW)
     GPIO.cleanup()
@@ -121,9 +119,11 @@ def motor_driver():
     rospy.on_shutdown(shutdown_cb)
 
     GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
+    GPIO.cleanup()
     #GPIO.setup(left_ia, GPIO.OUT)
     GPIO.setup(left_ib, GPIO.OUT)
     #GPIO.setup(right_ia, GPIO.OUT)
+
     GPIO.setup(right_ib, GPIO.OUT)
     
     GPIO.setup(22, GPIO.IN) # Right
@@ -154,18 +154,21 @@ def motor_driver():
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()
 
-
-    rospy.loginfo(rospy.get_caller_id() + "Shutting down!")
-    servo.stop_servo(left_ia)
-    servo.stop_servo(right_ia)
-
-    GPIO.setup(left_ia, GPIO.OUT)
-    GPIO.setup(right_ia, GPIO.OUT)
-    GPIO.output(left_ia, GPIO.LOW)
-    GPIO.output(right_ia, GPIO.LOW)
-    GPIO.output(left_ib, GPIO.LOW)
-    GPIO.output(right_ib, GPIO.LOW)
-    GPIO.cleanup()
+    if False:
+        rospy.loginfo(rospy.get_caller_id() + " Shutting down!")
+        
+        GPIO.setmode(GPIO.BCM) # Broadcom pin-numbering scheme
+        
+        servo.stop_servo(left_ia)
+        servo.stop_servo(right_ia)
+        
+        GPIO.setup(left_ia, GPIO.OUT)
+        GPIO.setup(right_ia, GPIO.OUT)
+        GPIO.output(left_ia, GPIO.LOW)
+        GPIO.output(right_ia, GPIO.LOW)
+        GPIO.output(left_ib, GPIO.LOW)
+        GPIO.output(right_ib, GPIO.LOW)
+        GPIO.cleanup()
 
 
 if __name__ == '__main__':

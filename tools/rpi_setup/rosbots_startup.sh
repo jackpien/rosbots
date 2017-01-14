@@ -10,9 +10,10 @@ echo "Starting rosbots_startup script" > ${ROSBOTS_HOME}/roscore.log
 
 # Try to get wifi address first
 wait_cnt=1
-until my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
+my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
+until [ "$my_ip" != "" ]
 do
-    if [ ${wait_cnt} == 10 ]; then
+    if [ $wait_cnt -eq 10 ]; then
 	echo "Waiting for IP address timed out" >> ${ROSBOTS_HOME}/roscore.log
 	break
     fi
@@ -25,12 +26,12 @@ do
     my_ip="$(ifconfig wlan0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
 
     # No wireless IP, what about ethernet?
-    if  [ "${my_ip}" == "" ]; then
+    if  [ "$my_ip" = "" ]; then
 	my_ip="$(ifconfig eth0 | grep inet | grep -v inet6 | awk '{print $2}' | sed 's/addr://g')"
     fi
 
     # Found IP?
-    if [ ${my_ip} != "" ]; then
+    if [ "$my_ip" != "" ]; then
 	break
     fi    
 
@@ -53,7 +54,7 @@ do
     echo "waiting ${wait_cnt}... for rosmaster to start" >> ${ROSBOTS_HOME}/roscore.log
     sleep 3
     wait_cnt=$((wait_cnt+1))
-    if [ ${wait_cnt} == 5 ]; then
+    if [ $wait_cnt -eq 5 ]; then
 	echo "Waiting for rosmaster timed out" >> ${ROSBOTS_HOME}/roscore.log
 	break
     fi
