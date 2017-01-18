@@ -48,11 +48,13 @@ class MotorDriverL9110S:
         GPIO.output(self.right_ib, GPIO.LOW)
                 
         # Two GPIO interrupt callbacks for encoder
+        RPIO.setup(self.encoder_right, RPIO.IN)
         RPIO.add_interrupt_callback(self.encoder_right,
                                     self.encoder_callback, edge='rising',
                                     debounce_timeout_ms=10,
                                     pull_up_down=RPIO.PUD_DOWN,
                                     threaded_callback=True)
+        RPIO.setup(self.encoder_left, RPIO.IN)
         RPIO.add_interrupt_callback(self.encoder_left,
                                     self.encoder_callback, edge='rising',
                                     debounce_timeout_ms=10,
@@ -75,6 +77,7 @@ class MotorDriverL9110S:
         GPIO.output(self.left_ib, GPIO.LOW)
         GPIO.output(self.right_ib, GPIO.LOW)
         GPIO.cleanup()
+        RPIO.cleanup()
             
             
 
